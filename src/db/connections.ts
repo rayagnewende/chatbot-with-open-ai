@@ -1,7 +1,5 @@
-import { log } from "console";
-import { connect, disconnect } from "mongoose";
-
-
+                                                                                                                                                                            
+    import { connect, disconnect } from "mongoose";
 
 async function databaseConnection() {
     
