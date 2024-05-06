@@ -1,4 +1,4 @@
-import { NextFunction, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import User from "../models/User.js";
 import bcrypt, { compare, compareSync } from "bcrypt" ; 
 import { log } from "console";
@@ -17,12 +17,12 @@ const getAllUers = async (req, res)  => {
 }
 
 const signup = async (req, res)  => {
-  console.log("user login")
+  console.log("user signup")
 
   try {
     const {name, email, password} = req.body ; 
-    const passwordHashed = bcrypt.hashSync(password, 10); 
-     const user = new  User({ name, email, pasword:passwordHashed}) ; 
+    const passwordHashed = await bcrypt.hash(password, 10); 
+     const user = new  User({ name, email, password:passwordHashed}) ; 
      await user.save();  
      
      res.clearCookie("auth_cookie", {
@@ -39,7 +39,7 @@ const signup = async (req, res)  => {
 
 
     
-     return res.status(201).json({message:"ok" , id:user._id}) ; 
+     return res.status(201).json({message:"ok" , id:user._id, name:user.name, email:user.email}) ; 
   } catch (error) {
     return  res.status(200).json({ message:"Error with user création", cause:error.message}); 
   }
@@ -50,22 +50,26 @@ const signup = async (req, res)  => {
 // user login 
 
 const login = async (req, res)  => {
+
   console.log("user login")
-  const { email, password} = req.body ; 
+  const { email, password} = req.body; 
     
   try {
-    const user = await User.findOne({email});     
+    const user = await User.findOne({email});    
+     
     if(!user)
     {
       return res.status(401).json({error:"User not registered!!"}) 
-    }else{
-      const passwordIsCorrect = compare(password, user.password); 
+    }
+
+      const passwordIsCorrect = await compare(password, user.password); 
+      
       if(!passwordIsCorrect)
       {
         return res.status(403).json({errror :"Password is not correct!!"}) ; 
   
       }
-
+      // console.log(req.signedCookies)
       res.clearCookie("auth_cookie", {
         path:"/", httpOnly:true, domain:"localhost", signed:true
 
@@ -76,10 +80,9 @@ const login = async (req, res)  => {
        expires.setDate( expires.getDate() + 7); 
       res.cookie("auth_cookie", token, {
         path:'/', domain:"localhost", expiresIn: expires,httpOnly:true, signed:true
-      }); 
-
-       return res.status(200).json({message:"ok" , id:user._id}) ; 
-    }
+      });
+       
+   return res.status(200).json({message:"ok" , name:user.name, email:user.email}) ; 
    
   } catch (error) {
     return  res.status(200).json({ message:"Error with user login", cause:error.message}); 
@@ -88,7 +91,39 @@ const login = async (req, res)  => {
 }
 
 
+ const verifyUser = async (req, res) => {
+
+  // user token check 
+   console.log("user verify !!");
+   console.log(res.locals.jwtData.id);
+   return   res.status(400).json({ test: "nous testons le token!!!"}); 
+    
+  try {
+    const user = await User.findById(res.locals.jwtData.id);    
+     
+    if(!user)
+    {
+      return res.status(401).json({error:"User not registered!! or Token is not correct"}) 
+    }
+
+    if(user._id.toString() !== res.locals.jwtData.id)
+      {
+        return res.send("Permissions are denied!!!!")
+      }
+
+       
+   return res.status(200).json({message:"ok" , name:user.name, email:user.email}) ; 
+   
+  } catch (error) {
+    return  res.status(200).json({ message:"Error with user login", cause:error.message}); 
+  }
+
+}
 
 
 
-export { getAllUers, signup, login}                                                                                       
+
+
+
+
+export { getAllUers, signup, login, verifyUser}                                                                                       
