@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import User from "../models/User.js";
-import bcrypt, { compare, compareSync } from "bcrypt" ; 
-import { log } from "console";
+import bcrypt, { compare } from "bcrypt" ; 
 import { createToken } from "../utils/token-manager.js";
 
 const getAllUers = async (req, res)  => {
